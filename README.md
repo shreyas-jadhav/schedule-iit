@@ -1,6 +1,18 @@
-# Schedule IIT 
+# Install
 
-Schedule IIT is a web application designed to help students of the Indian Institutes of Technology (IITs) manage their academic schedules effectively. The application provides features such as timetable management, assignment tracking, and exam reminders.
-oho
-shreyas text
-shreyas text
+```
+source .venv/bin/activate
+pip install Flask
+```
+
+# Run
+
+```
+flask --app server run      
+``` 
+
+# Team 
+
+25M2138 - Shreyash Jadhav 
+25m2127 - Ananya Kamalapur
+25m2109 - Shalini Maderla

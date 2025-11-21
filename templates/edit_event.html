@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2 class="text-2xl font-semibold text-gray-700 mb-6">Edit Academic Event</h2>
+
+    <form action="{{ url_for('edit_event', event_id=event.ae_id) }}" method="POST" class="bg-white p-8 rounded-lg shadow-lg border border-gray-300 max-w-2xl mx-auto">
+        
+        <div class="mb-4">
+            <label for="title" class="block text-gray-700 font-bold mb-2">Event Title</label>
+            <input type="text" id="title" name="title" value="{{ event.title }}" required
+                   class="shadow appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+            <div>
+                <label for="type" class="block text-gray-700 font-bold mb-2">Event Type</label>
+                <select id="type" name="type" required
+                        class="shadow border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option value="class" {% if event.type == 'class' %}selected{% endif %}>Class</option>
+                    <option value="assignment" {% if event.type == 'assignment' %}selected{% endif %}>Assignment</option>
+                    <option value="exam" {% if event.type == 'exam' %}selected{% endif %}>Exam</option>
+                    <option value="meeting" {% if event.type == 'meeting' %}selected{% endif %}>Meeting</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="start" class="block text-gray-700 font-bold mb-2">Start Time / Deadline</label>
+                <input type="datetime-local" id="start" name="start" value="{{ event.start.strftime('%Y-%m-%dT%H:%M') }}" required
+                       class="shadow appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label for="session_hours" class="block text-gray-700 font-bold mb-2">Duration (in hours)</label>
+                <input type="number" id="session_hours" name="session_hours" value="{{ event.session_hours }}" step="0.25" min="0" required
+                       class="shadow appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label for="buffer_hours" class="block text-gray-700 font-bold mb-2">Buffer (in hours)</label>
+                <input type="number" id="buffer_hours" name="buffer_hours" value="{{ event.buffer_hours }}" step="0.25" min="0" required
+                       class="shadow appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="repeat" class="block text-gray-700 font-bold mb-2">Repeat (Cron Expression)</label>
+            <input type="text" id="repeat" name="repeat" value="{{ event.repeat or '' }}"
+                   placeholder="e.g., 0 9 * * 1-5"
+                   class="shadow appearance-none border border-gray-300 rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+            <p class="text-sm text-gray-500 mt-2">Leave blank if this event does not repeat.</p>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:-translate-y-px">
+                Update Event
+            </button>
+            <a href="{{ url_for('delete_event', event_id=event.ae_id) }}"
+               class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                Delete Event
+            </a>
+        </div>
+    </form>
+{% endblock %}
+
