@@ -1,14 +1,13 @@
+
 # Install
 
 ```
-source .venv/bin/activate
-pip install Flask
+pip install -r requirements.txt
 ```
 
 # Run
 
 ```
-pip install -r requirements.txt
 python app.py
 ``` 
 
@@ -16,4 +15,4 @@ python app.py
 
 25M2138 - Shreyash Jadhav 
 25m2127 - Ananya Kamalapur
-25m2109 - Shalini Maderla
+25m2109 - Shalini Madderla
