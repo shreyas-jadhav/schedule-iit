@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
 import time
 from db import insert_task
@@ -67,7 +68,8 @@ def start_browser():
         print("Could not locate Chrome profile, continuing without using stored credentials.")
 
     #driver = webdriver.Chrome(service=service, options=options)'''
-    driver = webdriver.Chrome(options=options)                
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)           
     return driver
 
 def wait_for_login(driver, timeout_sec=300):
@@ -96,8 +98,10 @@ def start_headless_browser(cookies):
     options.add_argument("--no-sandbox")
     options.add_argument("--enable-chrome-browser-cloud-management")
     options.add_argument("--disable-blink-features=AutomationControlled")
-
-    headless_driver = webdriver.Chrome(options=options)
+    
+    service = Service(ChromeDriverManager().install())
+    
+    headless_driver = webdriver.Chrome(service=service, options=options)
 
     # Add cookies into headless browser
     headless_driver.get("https://moodle.iitb.ac.in")
