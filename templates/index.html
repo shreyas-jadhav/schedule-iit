@@ -109,10 +109,6 @@
                     class="py-2 bg-white border border-indigo-500 text-indigo-600 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-indigo-50 transition shadow-sm flex items-center justify-center gap-2">
                     <i data-lucide="refresh-cw" class="w-3 h-3"></i> Moodle
                 </button>
-                <!-- <button onclick="syncASC()" id="syncAscBtn"
-                    class="py-2 bg-white border border-orange-100 text-orange-600 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition shadow-sm flex items-center justify-center gap-2">
-                    <i data-lucide="calendar" class="w-3 h-3"></i> ASC Class
-                </button> -->
             </div>
         </div>
 
@@ -219,7 +215,61 @@
                 </div>
             </div>
 
-            <div id="view-settings" class="hidden max-w-3xl mx-auto pb-20">
+            <div id="view-settings" class="hidden max-w-5xl mx-auto pb-20">
+                
+                <!-- CLASS SCHEDULE SECTION -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                            <i data-lucide="graduation-cap" class="w-4 h-4 text-indigo-500"></i> Class Schedule
+                        </h3>
+                        <div class="text-xs text-gray-400">Recurring Weekly Classes</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                        <div class="grid grid-cols-12 gap-2 mb-2 items-end">
+                            <div class="col-span-4">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Class Name</label>
+                                <input type="text" id="cls_name" placeholder="e.g. Calculus" class="w-full text-xs p-2 rounded border border-gray-200">
+                            </div>
+                            <div class="col-span-3">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Day</label>
+                                <select id="cls_day" class="w-full text-xs p-2 rounded border border-gray-200 bg-white">
+                                    <option value="0">Monday</option>
+                                    <option value="1">Tuesday</option>
+                                    <option value="2">Wednesday</option>
+                                    <option value="3">Thursday</option>
+                                    <option value="4">Friday</option>
+                                    <option value="5">Saturday</option>
+                                    <option value="6">Sunday</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Start</label>
+                                <input type="time" id="cls_start" class="w-full text-xs p-2 rounded border border-gray-200">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">End</label>
+                                <input type="time" id="cls_end" class="w-full text-xs p-2 rounded border border-gray-200">
+                            </div>
+                            <div class="col-span-1">
+                                <button onclick="addClassToBuffer()" class="w-full h-[34px] bg-indigo-600 text-white rounded flex items-center justify-center hover:bg-indigo-700">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- List of pending classes -->
+                        <div id="class-buffer" class="space-y-2 mt-4"></div>
+                        
+                        <div class="mt-4 pt-3 border-t border-gray-200 flex justify-end">
+                             <button onclick="populateSemester()" id="btn-populate" class="px-4 py-2 bg-indigo-100 text-indigo-700 text-xs font-bold rounded hover:bg-indigo-200 flex items-center gap-2">
+                                <i data-lucide="calendar-range" class="w-3 h-3"></i> Populate Semester (Ends Dec/May)
+                             </button>
+                        </div>
+                    </div>
+                </div>
+
                 <form id="settingsForm">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2 md:col-span-1">
@@ -319,7 +369,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2 mt-6">
                         <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
                             <i data-lucide="lock" class="w-4 h-4 text-gray-500"></i> ASC Credentials
                         </h3>
@@ -493,6 +543,29 @@
                 if (t.priority === 3) badgeClass = 'bg-red-100 text-red-700 border border-red-200';
                 if (t.priority === 2) badgeClass = 'bg-amber-100 text-amber-700 border border-amber-200';
                 if (t.priority === 1) badgeClass = 'bg-blue-100 text-blue-700 border border-blue-200';
+                
+                // If it's a class type, show slightly differently
+                if (t.task_type === 'class') {
+                    return `
+                     <div class="group bg-indigo-50 p-3 rounded-xl border border-indigo-100 shadow-sm relative">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-bold text-sm text-indigo-900 truncate pr-2 leading-tight">${t.title}</div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-800">CLASS</span>
+                        </div>
+                        <div class="text-xs text-indigo-400 space-y-1">
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="calendar" class="w-3 h-3"></i>
+                                <span>${formatDateTime(t.start_time || t.deadline)}</span>
+                            </div>
+                        </div>
+                         <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded shadow-sm border border-gray-100">
+                            <button onclick="deleteTask(${t.id})" class="p-1 hover:bg-red-50 text-red-500 rounded">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                    `
+                }
 
                 return `
                     <div class="group bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all relative">
@@ -523,8 +596,8 @@
 
             // Split tasks
             const now = new Date();
-            const overdue = tasks.filter(t => new Date(t.deadline) < now);
-            const upcoming = tasks.filter(t => new Date(t.deadline) >= now);
+            const overdue = tasks.filter(t => t.deadline && new Date(t.deadline) < now && t.task_type !== 'class');
+            const upcoming = tasks.filter(t => !t.deadline || new Date(t.deadline) >= now || t.task_type === 'class');
 
             // 1. Render Overdue (Collapsible) if any
             if (overdue.length > 0) {
@@ -626,12 +699,20 @@
                     dayContainer = document.getElementById(`day-wrapper-${start.getTime()}`);
                     currentDay = dayStr;
                 }
+                
+                // Visual variation for classes vs tasks
+                let borderClass = 'border-gray-100';
+                let bgTime = 'bg-gray-50';
+                if(evt.type === 'class') {
+                    borderClass = 'border-indigo-200 bg-indigo-50/50';
+                    bgTime = 'bg-indigo-100 text-indigo-800';
+                }
 
                 dayContainer.innerHTML += `
-                    <div class="group flex bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
-                        <div class="w-20 bg-gray-50 border-r border-gray-100 flex flex-col justify-center items-center p-2 text-center">
-                            <span class="text-sm font-bold text-gray-700 block">${formatTime(evt.start)}</span>
-                            <span class="text-[10px] text-gray-400 font-mono mt-1">+${evt.chunk_duration}h</span>
+                    <div class="group flex bg-white border ${borderClass} rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
+                        <div class="w-20 ${bgTime} border-r border-gray-100 flex flex-col justify-center items-center p-2 text-center">
+                            <span class="text-sm font-bold block">${formatTime(evt.start)}</span>
+                            ${evt.chunk_duration > 0 ? `<span class="text-[10px] opacity-60 font-mono mt-1">+${evt.chunk_duration}h</span>` : ''}
                         </div>
                         <div class="flex-1 p-3 flex flex-col justify-center min-w-0">
                             <div class="flex items-center gap-2 mb-1">
@@ -668,7 +749,7 @@
             document.getElementById('set_break').value = data.break_minutes || 15;
 
             document.getElementById('set_asc_user').value = data.asc_username || '';
-    document.getElementById('set_asc_pass').value = data.asc_password || '';
+            document.getElementById('set_asc_pass').value = data.asc_password || '';
         }
 
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
@@ -776,25 +857,6 @@
             lucide.createIcons();
         }
 
-        async function syncASC() {
-            const btn = document.getElementById('syncAscBtn');
-            const oldHtml = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Loading...`;
-            btn.disabled = true;
-            lucide.createIcons();
-
-            try {
-                const res = await fetch('/api/sync_asc', { method: 'POST' });
-                const d = await res.json();
-                alert(d.message);
-                refreshAll();
-            } catch (e) { alert("ASC Sync failed"); }
-
-            btn.innerHTML = oldHtml;
-            btn.disabled = false;
-            lucide.createIcons();
-        }
-
         function openEditModal(task) {
             // Populate form
             document.getElementById('edit_task_id').value = task.id;
@@ -845,6 +907,93 @@
             btn.disabled = false;
             refreshAll();
         });
+
+        // --- NEW: CLASS BUFFER LOGIC ---
+        let classBuffer = [];
+        
+        function addClassToBuffer() {
+            const name = document.getElementById('cls_name').value;
+            const day = document.getElementById('cls_day').value;
+            const start = document.getElementById('cls_start').value;
+            const end = document.getElementById('cls_end').value;
+            
+            if(!name || !start || !end) {
+                alert("Please fill all class details");
+                return;
+            }
+            
+            classBuffer.push({ name, day: parseInt(day), start, end });
+            renderClassBuffer();
+            
+            // Clear inputs
+            document.getElementById('cls_name').value = "";
+            document.getElementById('cls_start').value = "";
+            document.getElementById('cls_end').value = "";
+        }
+        
+        function removeClassFromBuffer(idx) {
+            classBuffer.splice(idx, 1);
+            renderClassBuffer();
+        }
+        
+        function renderClassBuffer() {
+            const el = document.getElementById('class-buffer');
+            const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+            
+            if (classBuffer.length === 0) {
+                el.innerHTML = '<div class="text-[10px] text-gray-400 italic text-center py-2">No classes added yet.</div>';
+                return;
+            }
+            
+            el.innerHTML = classBuffer.map((c, i) => `
+                <div class="flex items-center justify-between text-xs bg-white border border-gray-200 p-2 rounded">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-gray-800">${c.name}</span>
+                        <span class="text-[10px] bg-gray-100 px-1.5 rounded">${days[c.day]}</span>
+                        <span class="text-gray-500 font-mono">${c.start}-${c.end}</span>
+                    </div>
+                    <button onclick="removeClassFromBuffer(${i})" class="text-gray-400 hover:text-red-500">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        async function populateSemester() {
+            if (classBuffer.length === 0) {
+                alert("Please add at least one class.");
+                return;
+            }
+            
+            const btn = document.getElementById('btn-populate');
+            const old = btn.innerHTML;
+            btn.innerHTML = 'Generating...';
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/populate_classes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(classBuffer)
+                });
+                const data = await res.json();
+                
+                // Clear buffer and notify
+                classBuffer = [];
+                renderClassBuffer();
+                alert(data.message);
+                
+                // Switch back to timeline to see changes
+                switchTab('schedule');
+                refreshAll();
+                
+            } catch(e) {
+                alert("Error generating classes.");
+            }
+            
+            btn.innerHTML = old;
+            btn.disabled = false;
+        }
 
         // Init
         refreshAll();
