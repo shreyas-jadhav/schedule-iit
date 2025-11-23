@@ -1,397 +1,758 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schedule-IIT | Transparent Planner</title>
+    <title>Schedule-IIT | Intelligent Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Smooth collapse animation details */
+        details>summary {
+            list-style: none;
+        }
+
+        details>summary::-webkit-details-marker {
+            display: none;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 h-screen flex overflow-hidden font-sans text-gray-800">
 
-    <div id="settingsModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm h-full w-full z-50 flex items-center justify-center">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-96 border border-gray-200">
-            <h2 class="text-xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-                <i data-lucide="sliders" class="w-5 h-5"></i> Configuration
-            </h2>
-            <form id="settingsForm" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Daily Work Hours</label>
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <span class="text-xs text-gray-500">Start</span>
-                            <input type="number" id="set_start" class="w-full border rounded p-2 bg-gray-50" placeholder="9">
-                        </div>
-                        <div class="flex-1">
-                            <span class="text-xs text-gray-500">End</span>
-                            <input type="number" id="set_end" class="w-full border rounded p-2 bg-gray-50" placeholder="17">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center p-3 bg-gray-50 rounded border">
-                    <input type="checkbox" id="set_weekend" class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500">
-                    <label for="set_weekend" class="ml-3 block text-sm font-medium text-gray-700">Work on Weekends</label>
-                </div>
+<body class="bg-gray-100 h-screen flex overflow-hidden font-sans text-gray-800">
 
-                <div class="pt-4 border-t">
-                    <label class="block text-sm font-bold text-blue-700 mb-1">Simulation (Time Travel)</label>
-                    <input type="datetime-local" id="set_sim_date" class="w-full border rounded p-2 bg-blue-50 text-sm">
-                </div>
+    <div class="w-96 bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 flex-shrink-0">
 
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" onclick="toggleModal(false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 shadow">Save Config</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="w-96 bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 relative">
-        <div class="p-6 border-b border-gray-100">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-extrabold text-blue-600 tracking-tight">Schedule-IIT</h1>
-                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Task Manager</p>
-                </div>
-                <button onclick="openSettings()" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition" title="Settings">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                </button>
-            </div>
+        <div class="p-6 border-b border-gray-100 bg-gradient-to-br from-white to-gray-50">
+            <h1 class="text-2xl font-extrabold text-blue-600 tracking-tight flex items-center gap-2">
+                <i data-lucide="calendar-check-2" class="w-6 h-6"></i>
+                Schedule-IIT
+            </h1>
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider mt-1">Intelligent Task Manager</p>
         </div>
 
-        <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+        <div class="p-5 border-b border-gray-100 bg-gray-50/80">
             <form id="addTaskForm" class="space-y-3">
-                <input type="text" id="title" placeholder="Task Title (e.g. Math Assignment)" required 
-                       class="w-full rounded-md border-gray-300 shadow-sm px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                
-                <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <input type="text" id="title" placeholder="Task Title (e.g., MATH 101 Assignment)" required
+                        class="w-full rounded-lg border-gray-200 shadow-sm px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <label class="text-[10px] font-bold text-gray-500 uppercase">Est. Hours</label>
-                        <input type="number" id="hours" step="0.5" min="0.5" value="1" required 
-                               class="w-full rounded-md border-gray-300 px-3 py-2 text-sm">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Est.
+                            Hours</label>
+                        <input type="number" id="hours" step="0.5" min="0.5" value="1" required
+                            class="w-full rounded-lg border-gray-200 shadow-sm px-2 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
                     </div>
+
                     <div>
-                        <label class="text-[10px] font-bold text-gray-500 uppercase">Priority</label>
-                        <select id="priority" class="w-full rounded-md border-gray-300 px-3 py-2 text-sm bg-white">
+                        <label
+                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Type</label>
+                        <select id="task_type"
+                            class="w-full rounded-lg border-gray-200 shadow-sm px-2 py-2 text-sm bg-white focus:ring-blue-500 focus:border-blue-500">
+                            <option value="assignment" selected>Assignment</option>
+                            <option value="exam">Exam</option>
+                            <option value="project">Project</option>
+                            <option value="study">Study</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="misc">Misc</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label
+                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Priority</label>
+                        <select id="priority"
+                            class="w-full rounded-lg border-gray-200 shadow-sm px-2 py-2 text-sm bg-white focus:ring-blue-500 focus:border-blue-500">
                             <option value="3">High 🔥</option>
                             <option value="2" selected>Medium</option>
                             <option value="1">Low</option>
                         </select>
                     </div>
                 </div>
-                
+
                 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase">Deadline</label>
-                    <input type="datetime-local" id="deadline" required 
-                           class="w-full rounded-md border-gray-300 px-3 py-2 text-sm text-gray-600">
+                    <label
+                        class="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mb-1 block">Deadline</label>
+                    <input type="datetime-local" id="deadline" required
+                        class="w-full rounded-lg border-gray-200 shadow-sm px-3 py-2 text-sm text-gray-600 focus:ring-blue-500 focus:border-blue-500">
                 </div>
 
-                <button type="submit" class="w-full py-2.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 shadow-md transition-all transform hover:-translate-y-0.5">
-                    Add to Backlog
+                <button type="submit"
+                    class="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add to Backlog
                 </button>
             </form>
-            
-            <button onclick="syncMoodle()" id="syncBtn" class="mt-4 w-full py-2 bg-white border border-indigo-200 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-50 transition flex items-center justify-center gap-2">
-                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Moodle
-            </button>
+
+            <div class="grid grid-cols-1 gap-2 mt-4">
+                <button onclick="syncMoodle()" id="syncBtn"
+                    class="py-2 bg-white border border-indigo-500 text-indigo-600 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-indigo-50 transition shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Moodle
+                </button>
+                <!-- <button onclick="syncASC()" id="syncAscBtn"
+                    class="py-2 bg-white border border-orange-100 text-orange-600 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-orange-50 transition shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="calendar" class="w-3 h-3"></i> ASC Class
+                </button> -->
+            </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 bg-gray-50">
-            <div class="flex justify-between items-end mb-3 px-1">
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Pending Tasks</h2>
-                <span class="text-[10px] bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full" id="task-count">0</span>
+            <div class="flex justify-between items-end mb-4 px-1">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Backlog</h2>
+                <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold"
+                    id="task-count">0</span>
             </div>
             <div id="raw-task-list" class="space-y-3 pb-10">
-                </div>
+            </div>
         </div>
     </div>
 
-    <div class="flex-1 flex flex-col bg-gray-100 min-w-0">
-        
-        <div id="sim-banner" class="hidden bg-amber-100 border-b border-amber-200 px-4 py-2 flex items-center justify-center gap-2 text-amber-800 text-xs font-bold">
+    <div class="flex-1 flex flex-col min-w-0 bg-white">
+
+        <div class="px-8 pt-6 pb-0 border-b border-gray-200 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800" id="page-title">Planner Dashboard</h2>
+                    <p class="text-sm text-gray-500" id="page-subtitle">Visualizing your optimized study plan</p>
+                </div>
+
+                <div class="flex gap-4 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase">Avg Daily Load</div>
+                        <div class="text-sm font-bold text-gray-700"><span id="metric-avg">0</span>h</div>
+                    </div>
+                    <div class="w-px bg-gray-200"></div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase">Peak Day</div>
+                        <div class="text-sm font-bold text-indigo-600"><span id="metric-peak">0</span>h</div>
+                    </div>
+                    <div class="w-px bg-gray-200"></div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase">Active Days</div>
+                        <div class="text-sm font-bold text-gray-700"><span id="metric-days">0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-6">
+                <button onclick="switchTab('schedule')" id="tab-schedule"
+                    class="pb-3 px-1 border-b-2 font-medium text-sm transition-colors border-blue-600 text-blue-600">
+                    Timeline View
+                </button>
+                <button onclick="switchTab('settings')" id="tab-settings"
+                    class="pb-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700">
+                    Configuration
+                </button>
+            </div>
+        </div>
+
+        <div id="sim-banner"
+            class="hidden bg-amber-50 border-b border-amber-200 px-8 py-2 flex items-center gap-3 text-amber-800 text-xs font-bold">
             <i data-lucide="clock" class="w-4 h-4"></i>
-            SIMULATION MODE: Perspective from <span id="sim-date-display" class="underline"></span>
+            <span>Running Simulation from: <span id="sim-date-display" class="underline font-mono ml-1"></span></span>
+            <button onclick="resetSimulation()" class="ml-auto text-amber-600 hover:text-amber-900 underline">Reset to
+                Now</button>
         </div>
 
-        <div class="bg-white border-b border-gray-200 px-8 py-4 shadow-sm">
-            <div class="grid grid-cols-4 gap-8">
-                <div>
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Workload</div>
-                    <div class="text-2xl font-bold text-gray-800 mt-1"><span id="metric-hours">0</span><span class="text-base text-gray-400 font-normal">h</span></div>
+        <div class="flex-1 overflow-y-auto bg-gray-50/30 p-8 scroll-smooth relative">
+
+            <div id="view-schedule" class="max-w-4xl mx-auto">
+
+                <div id="expired-container" class="hidden mb-6">
+                    <details
+                        class="group bg-red-50 border border-red-200 rounded-xl overflow-hidden shadow-sm open:shadow-md transition-all">
+                        <summary
+                            class="flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-red-100/50 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-red-100 text-red-600 p-1.5 rounded-lg">
+                                    <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-red-900 font-bold text-sm flex items-center gap-2">
+                                        Missed Deadlines
+                                        <span class="bg-red-200 text-red-800 text-[10px] px-2 py-0.5 rounded-full"
+                                            id="expired-badge">0</span>
+                                    </h3>
+                                    <p class="text-[11px] text-red-500 group-open:hidden">Tasks that couldn't be
+                                        scheduled on time</p>
+                                </div>
+                            </div>
+                            <i data-lucide="chevron-down"
+                                class="w-4 h-4 text-red-400 group-open:rotate-180 transition-transform duration-200"></i>
+                        </summary>
+
+                        <div class="px-4 pb-4 pt-1 bg-white border-t border-red-100">
+                            <div id="expired-list" class="space-y-2 mt-3 max-h-48 overflow-y-auto pr-2">
+                            </div>
+                        </div>
+                    </details>
                 </div>
-                <div>
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Scheduled</div>
-                    <div class="text-2xl font-bold text-green-600 mt-1"><span id="metric-scheduled">0</span><span class="text-base text-gray-400 font-normal">h</span></div>
-                </div>
-                <div>
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Missed / Impossible</div>
-                    <div class="text-2xl font-bold text-red-600 mt-1" id="metric-missed">0</div>
-                </div>
-                <div>
-                     <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Optimization Unit</div>
-                    <div class="text-lg font-bold text-purple-600 mt-2 flex items-center gap-1">
-                        <i data-lucide="layers" class="w-4 h-4"></i> 30m
+
+                <div id="schedule-container" class="space-y-1 pb-20"></div>
+
+                <div id="empty-state" class="hidden text-center py-32 opacity-60">
+                    <div class="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i data-lucide="coffee" class="w-10 h-10 text-gray-400"></i>
                     </div>
+                    <h3 class="text-gray-900 font-bold text-lg">You're completely free!</h3>
+                    <p class="text-gray-500 text-sm mt-1">No pending tasks or schedule to display.</p>
                 </div>
             </div>
+
+            <div id="view-settings" class="hidden max-w-3xl mx-auto pb-20">
+                <form id="settingsForm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2 md:col-span-1">
+                            <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="sun" class="w-4 h-4 text-blue-500"></i> Daily Limits
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Work
+                                        Window (24 HR Format)</label>
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <input type="number" id="set_start"
+                                                class="w-full pl-3 pr-8 py-2 border rounded-md text-sm" placeholder="9">
+
+                                        </div>
+                                        <span class="text-gray-300">—</span>
+                                        <div class="relative flex-1">
+                                            <input type="number" id="set_end"
+                                                class="w-full pl-3 pr-8 py-2 border rounded-md text-sm"
+                                                placeholder="17">
+
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Max Focus Hours
+                                        / Day</label>
+                                    <input type="number" id="set_max_daily" step="0.5"
+                                        class="w-full border rounded-md p-2 text-sm" placeholder="6.0">
+                                </div>
+                                <div class="flex items-center gap-3 pt-2">
+                                    <input type="checkbox" id="set_weekend"
+                                        class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                    <label for="set_weekend" class="text-sm font-medium text-gray-700">Allow Work on
+                                        Weekends</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2 md:col-span-1">
+                            <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="brain-circuit" class="w-4 h-4 text-purple-500"></i> Session Logic
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Min
+                                            Session</label>
+                                        <div class="relative">
+                                            <input type="number" id="set_min_session"
+                                                class="w-full border rounded-md p-2 text-sm" placeholder="30">
+                                            <span class="absolute right-3 top-2.5 text-xs text-gray-400">min</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Max
+                                            Session</label>
+                                        <div class="relative">
+                                            <input type="number" id="set_max_session"
+                                                class="w-full border rounded-md p-2 text-sm" placeholder="120">
+                                            <span class="absolute right-3 top-2.5 text-xs text-gray-400">min</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Break
+                                        Duration</label>
+                                    <div class="relative">
+                                        <input type="number" id="set_break" class="w-full border rounded-md p-2 text-sm"
+                                            placeholder="15">
+                                        <span class="absolute right-3 top-2.5 text-xs text-gray-400">min</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100 col-span-2">
+                            <h3 class="font-bold text-blue-800 flex items-center gap-2 mb-4">
+                                <i data-lucide="history" class="w-4 h-4"></i> Time Travel Simulation
+                            </h3>
+                            <div class="flex items-end gap-4">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-bold text-blue-400 uppercase mb-1">Simulate "Today"
+                                        As</label>
+                                    <input type="datetime-local" id="set_sim_date"
+                                        class="w-full border border-blue-200 rounded-md p-2 text-sm bg-white">
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-xs text-blue-600 leading-relaxed">
+                                        Setting a date here forces the scheduler to calculate priorities as if it were
+                                        that specific moment.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 col-span-2">
+                        <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                            <i data-lucide="lock" class="w-4 h-4 text-gray-500"></i> ASC Credentials
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">LDAP
+                                    Username</label>
+                                <input type="text" id="set_asc_user" class="w-full border rounded-md p-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">LDAP
+                                    Password</label>
+                                <input type="password" id="set_asc_pass" class="w-full border rounded-md p-2 text-sm">
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-2">Stored locally on your machine for auto-login.</p>
+                    </div>
+
+                    <div class="mt-8 flex justify-end gap-3 border-t pt-6">
+                        <button type="button" onclick="loadSettings()"
+                            class="px-6 py-2.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Reset Changes
+                        </button>
+                        <button type="submit"
+                            class="px-6 py-2.5 text-sm font-bold text-white bg-gray-900 rounded-lg hover:bg-black shadow-lg flex items-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> Save Configuration
+                        </button>
+                    </div>
+                </form>
+            </div>
+
         </div>
+    </div>
 
-        <div class="flex-1 overflow-y-auto p-8 scroll-smooth">
-            <div class="max-w-5xl mx-auto">
-                
-                <div id="expired-container" class="hidden mb-8 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 shadow-sm">
-                    <h3 class="text-red-800 font-bold text-sm flex items-center gap-2 mb-2">
-                        <i data-lucide="alert-circle" class="w-4 h-4"></i> Cannot Schedule (Deadlines Missed)
-                    </h3>
-                    <p class="text-xs text-red-600 mb-3">These tasks require more time than available before their deadlines.</p>
-                    <div id="expired-list" class="space-y-2"></div>
-                </div>
-
-                <div id="schedule-header" class="hidden flex items-center px-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200 mb-4">
-                    <div class="w-24">Time</div>
-                    <div class="flex-1">Activity & Status</div>
-                    <div class="w-32 text-right">Allocation</div>
-                </div>
-
-                <div id="schedule-container" class="space-y-1"></div>
-                
-                <div id="empty-state" class="hidden text-center py-20">
-                    <div class="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                        <i data-lucide="calendar" class="w-8 h-8 text-gray-300"></i>
-                    </div>
-                    <h3 class="text-gray-900 font-medium">No tasks scheduled</h3>
-                    <p class="text-gray-500 text-sm">Add tasks or check configuration settings.</p>
-                </div>
+    <div id="editModal"
+        class="hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 class="font-bold text-gray-800">Edit Task</h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
+            <form id="editTaskForm" class="p-6 space-y-4">
+                <input type="hidden" id="edit_task_id">
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Task Title</label>
+                    <input type="text" id="edit_title"
+                        class="w-full rounded-lg border-gray-200 shadow-sm px-3 py-2 text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Deadline</label>
+                    <input type="datetime-local" id="edit_deadline" required
+                        class="w-full rounded-lg border-gray-200 shadow-sm px-3 py-2 text-sm text-gray-600 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Est. Hours</label>
+                        <input type="number" id="edit_hours" step="0.5" min="0.5"
+                            class="w-full rounded-lg border-gray-200 shadow-sm px-3 py-2 text-sm font-bold text-blue-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Priority</label>
+                        <select id="edit_priority"
+                            class="w-full rounded-lg border-gray-200 shadow-sm px-3 py-2 text-sm bg-white">
+                            <option value="3">High 🔥</option>
+                            <option value="2">Medium</option>
+                            <option value="1">Low</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Task Type</label>
+                        <select id="edit_task_type"
+                            class="w-full rounded-lg border-gray-200 shadow-sm px-3 py-2 text-sm bg-white">
+                            <option value="assignment">Assignment</option>
+                            <option value="exam">Exam</option>
+                            <option value="project">Project</option>
+                            <option value="study">Study Session</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="misc">Miscellaneous</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
         // --- UTILS ---
         const formatDateTime = (isoStr) => {
+            if (!isoStr) return '';
             const d = new Date(isoStr);
             return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         };
 
-        // --- STATE & FETCH ---
+        const formatTime = (isoStr) => {
+            const d = new Date(isoStr);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
+        // --- UI HELPERS ---
+        function toggleDay(headerElement) {
+            const dayContent = headerElement.nextElementSibling;
+            const icon = headerElement.querySelector('.chevron-icon');
+
+            if (dayContent.classList.contains('hidden')) {
+                dayContent.classList.remove('hidden');
+                icon.style.transform = 'rotate(0deg)';
+                headerElement.classList.remove('opacity-60');
+            } else {
+                dayContent.classList.add('hidden');
+                icon.style.transform = 'rotate(-90deg)';
+                headerElement.classList.add('opacity-60');
+            }
+        }
+
+        // --- TABS ---
+        function switchTab(tabName) {
+            const scheduleView = document.getElementById('view-schedule');
+            const settingsView = document.getElementById('view-settings');
+            const tabSch = document.getElementById('tab-schedule');
+            const tabSet = document.getElementById('tab-settings');
+
+            if (tabName === 'schedule') {
+                scheduleView.classList.remove('hidden');
+                settingsView.classList.add('hidden');
+                tabSch.classList.add('border-blue-600', 'text-blue-600');
+                tabSch.classList.remove('border-transparent', 'text-gray-500');
+                tabSet.classList.remove('border-blue-600', 'text-blue-600');
+                tabSet.classList.add('border-transparent', 'text-gray-500');
+            } else {
+                scheduleView.classList.add('hidden');
+                settingsView.classList.remove('hidden');
+                tabSet.classList.add('border-blue-600', 'text-blue-600');
+                tabSet.classList.remove('border-transparent', 'text-gray-500');
+                tabSch.classList.remove('border-blue-600', 'text-blue-600');
+                tabSch.classList.add('border-transparent', 'text-gray-500');
+                loadSettings();
+            }
+        }
+
+        // --- CORE FETCH ---
         async function refreshAll() {
             await loadRawTasks();
             await loadSchedule();
             lucide.createIcons();
         }
 
+        // --- UPDATED LEFT LIST (Collapsible Overdue) ---
         async function loadRawTasks() {
             const res = await fetch('/api/tasks');
             const tasks = await res.json();
             const list = document.getElementById('raw-task-list');
             document.getElementById('task-count').innerText = tasks.length;
-            
+
             list.innerHTML = '';
-            tasks.forEach(t => {
-                const pColor = t.priority === 3 ? 'text-red-600 bg-red-50 border-red-100' : 
-                               t.priority === 2 ? 'text-amber-600 bg-amber-50 border-amber-100' : 
-                               'text-blue-600 bg-blue-50 border-blue-100';
-                
-                list.innerHTML += `
-                    <div class="group bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all relative">
-                        <div class="flex justify-between items-start mb-1">
-                            <div class="font-semibold text-sm text-gray-800 truncate pr-2">${t.title}</div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${pColor}">P${t.priority}</span>
+
+            // Helper to create card HTML
+            const createCard = (t) => {
+                let badgeClass = 'bg-gray-100 text-gray-600';
+                if (t.priority === 3) badgeClass = 'bg-red-100 text-red-700 border border-red-200';
+                if (t.priority === 2) badgeClass = 'bg-amber-100 text-amber-700 border border-amber-200';
+                if (t.priority === 1) badgeClass = 'bg-blue-100 text-blue-700 border border-blue-200';
+
+                return `
+                    <div class="group bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all relative">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-bold text-sm text-gray-800 truncate pr-2 leading-tight">${t.title}</div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">P${t.priority}</span>
                         </div>
-                        <div class="text-xs text-gray-500 flex flex-col gap-1 mt-2">
+                        <div class="text-xs text-gray-500 space-y-1">
                             <div class="flex items-center gap-1.5">
-                                <i data-lucide="clock" class="w-3 h-3"></i>
-                                <span class="font-medium text-gray-700">${t.estimated_hours} hrs</span> needed
+                                <i data-lucide="clock" class="w-3 h-3 text-gray-400"></i>
+                                <span>${t.estimated_hours}h needed</span>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <i data-lucide="calendar-clock" class="w-3 h-3"></i>
-                                <span class="text-red-500 font-medium">${formatDateTime(t.deadline)}</span>
+                                <i data-lucide="flag" class="w-3 h-3 text-red-400"></i>
+                                <span class="${new Date(t.deadline) < new Date() ? 'text-red-600 font-bold' : ''}">Due ${formatDateTime(t.deadline)}</span>
                             </div>
                         </div>
-                        <button onclick="deleteTask(${t.id})" class="absolute top-2 right-2 hidden group-hover:block bg-white text-red-500 p-1 rounded border hover:bg-red-50">
-                           <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        </button>
+                       <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1 rounded shadow-sm border border-gray-100">
+     <button onclick='openEditModal(${JSON.stringify(t)})' class="p-1 hover:bg-blue-50 text-blue-500 rounded">
+        <i data-lucide="pencil" class="w-3 h-3"></i>
+     </button>
+     <button onclick="deleteTask(${t.id})" class="p-1 hover:bg-red-50 text-red-500 rounded">
+        <i data-lucide="trash-2" class="w-3 h-3"></i>
+     </button>
+</div>
                     </div>`;
+            };
+
+            // Split tasks
+            const now = new Date();
+            const overdue = tasks.filter(t => new Date(t.deadline) < now);
+            const upcoming = tasks.filter(t => new Date(t.deadline) >= now);
+
+            // 1. Render Overdue (Collapsible) if any
+            if (overdue.length > 0) {
+                list.innerHTML += `
+                    <details class="group mb-3 border border-red-100 bg-red-50/30 rounded-lg overflow-hidden">
+                        <summary class="px-3 py-2 cursor-pointer flex justify-between items-center hover:bg-red-50">
+                            <span class="text-xs font-bold text-red-800 flex items-center gap-2">
+                                <i data-lucide="alert-circle" class="w-3 h-3"></i> Overdue (${overdue.length})
+                            </span>
+                            <i data-lucide="chevron-down" class="w-3 h-3 text-red-400 group-open:rotate-180 transition-transform"></i>
+                        </summary>
+                        <div class="p-2 space-y-2 border-t border-red-100">
+                            ${overdue.map(t => createCard(t)).join('')}
+                        </div>
+                    </details>
+                `;
+            }
+
+            // 2. Render Upcoming (Normal list)
+            upcoming.forEach(t => {
+                list.innerHTML += createCard(t);
             });
         }
 
         async function loadSchedule() {
-            // 1. Handle Settings Banner
             const setRes = await fetch('/api/settings');
             const setData = await setRes.json();
+
             const banner = document.getElementById('sim-banner');
-            if(setData.simulation_date) {
+            if (setData.simulation_date) {
                 banner.classList.remove('hidden');
                 document.getElementById('sim-date-display').innerText = formatDateTime(setData.simulation_date);
             } else {
                 banner.classList.add('hidden');
             }
 
-            // 2. Fetch Schedule
             const res = await fetch('/api/schedule');
             const data = await res.json();
-            
-            // 3. Update Metrics
-            document.getElementById('metric-hours').innerText = data.metrics.total_hours_needed.toFixed(1);
-            document.getElementById('metric-scheduled').innerText = data.metrics.total_hours_scheduled.toFixed(1);
-            
-            // 4. Handle Expired/Impossible Tasks
+
+            document.getElementById('metric-avg').innerText = (data.metrics.avg_daily_hours || 0).toFixed(1);
+            document.getElementById('metric-peak').innerText = (data.metrics.peak_hours || 0).toFixed(1);
+            document.getElementById('metric-days').innerText = data.metrics.active_days_count || 0;
+
+            // --- HANDLE EXPIRED (Updated logic) ---
             const expiredContainer = document.getElementById('expired-container');
             const expiredList = document.getElementById('expired-list');
-            const missedCount = data.expired ? data.expired.length : 0;
-            
-            document.getElementById('metric-missed').innerText = missedCount + data.unscheduled.length;
+            const expiredBadge = document.getElementById('expired-badge');
 
-            if (missedCount > 0) {
+            if (data.expired && data.expired.length > 0) {
                 expiredContainer.classList.remove('hidden');
+                expiredBadge.innerText = data.expired.length;
                 expiredList.innerHTML = '';
                 data.expired.forEach(t => {
+                    // Removed negative timing, just showing generic failure message
                     expiredList.innerHTML += `
-                        <div class="flex justify-between items-center bg-white p-2 rounded border border-red-200 text-xs">
-                            <span class="font-bold text-gray-700">${t.title}</span>
-                            <span class="text-red-600">Missed deadline: ${formatDateTime(t.deadline)}</span>
-                        </div>
-                    `;
+                        <div class="flex items-center justify-between text-xs p-2 bg-red-50/50 border border-red-100 rounded-lg hover:bg-red-50">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-gray-800">${t.title}</span>
+                                <span class="text-red-500">Deadline: ${formatDateTime(t.deadline)}</span>
+                            </div>
+                            <span class="text-[10px] font-bold text-red-400 uppercase tracking-wider border border-red-100 px-1.5 py-0.5 rounded bg-white">Missed</span>
+                        </div>`;
                 });
             } else {
                 expiredContainer.classList.add('hidden');
             }
 
-            // 5. Render Main Schedule
+            // --- RENDER SCHEDULE ---
             const container = document.getElementById('schedule-container');
-            const header = document.getElementById('schedule-header');
             const empty = document.getElementById('empty-state');
-            
             container.innerHTML = '';
 
-            if (data.schedule.length === 0) {
-                header.classList.add('hidden');
+            if (!data.schedule || data.schedule.length === 0) {
                 empty.classList.remove('hidden');
                 return;
             }
-
-            header.classList.remove('hidden');
             empty.classList.add('hidden');
 
             let currentDay = '';
-            
+            let dayContainer = null;
+
             data.schedule.forEach(evt => {
                 const start = new Date(evt.start);
                 const dayStr = start.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                
+
                 if (dayStr !== currentDay) {
+                    if (dayContainer) container.appendChild(dayContainer);
+
                     container.innerHTML += `
-                        <div class="sticky top-0 z-10 bg-gray-100/95 backdrop-blur pt-6 pb-2">
-                            <h3 class="text-sm font-extrabold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                <div class="w-2 h-2 bg-blue-500 rounded-full"></div> ${dayStr}
+                        <div onclick="toggleDay(this)" class="sticky top-0 z-10 pt-6 pb-3 bg-gray-50/95 backdrop-blur border-b border-gray-200 mb-2 mt-2 cursor-pointer flex justify-between items-center group hover:bg-gray-100/80 px-2 rounded transition-all">
+                            <h3 class="text-sm font-extrabold text-gray-600 uppercase tracking-wider flex items-center gap-2">
+                                <span class="w-2 h-2 bg-blue-600 rounded-full"></span> ${dayStr}
                             </h3>
+                            <i data-lucide="chevron-down" class="chevron-icon w-4 h-4 text-gray-400 transition-transform"></i>
                         </div>
                     `;
+
+                    container.innerHTML += `<div id="day-wrapper-${start.getTime()}" class="space-y-4 mb-8 pl-2"></div>`;
+                    dayContainer = document.getElementById(`day-wrapper-${start.getTime()}`);
                     currentDay = dayStr;
                 }
 
-                container.innerHTML += `
-                    <div class="group flex items-center p-3 bg-white border-l-4 border-blue-500 shadow-sm rounded-r-md hover:shadow-md transition mb-2">
-                        
-                        <div class="w-24 flex-shrink-0">
-                            <div class="text-sm font-bold text-gray-700">
-                                ${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                            </div>
-                            <div class="text-[10px] text-gray-400 font-mono mt-0.5">
-                                + ${evt.total_block_duration}h
-                            </div>
+                dayContainer.innerHTML += `
+                    <div class="group flex bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden">
+                        <div class="w-20 bg-gray-50 border-r border-gray-100 flex flex-col justify-center items-center p-2 text-center">
+                            <span class="text-sm font-bold text-gray-700 block">${formatTime(evt.start)}</span>
+                            <span class="text-[10px] text-gray-400 font-mono mt-1">+${evt.chunk_duration}h</span>
                         </div>
-
-                        <div class="flex-1 min-w-0 px-4 border-l border-gray-100">
-                            <div class="flex items-center gap-2">
-                                <div class="truncate font-bold text-gray-800 text-sm">${evt.title}</div>
-                                <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded capitalize">${evt.type || 'manual'}</span>
+                        <div class="flex-1 p-3 flex flex-col justify-center min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="text-sm font-bold text-gray-800 truncate">${evt.title}</h4>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium capitalize border border-blue-100">${evt.type || 'task'}</span>
                             </div>
-                            <div class="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
-                                <i data-lucide="loader-2" class="w-3 h-3"></i>
+                            <div class="text-xs text-gray-500 flex items-center gap-2">
+                                <i data-lucide="battery-charging" class="w-3 h-3 text-green-500"></i>
                                 ${evt.progress_msg}
                             </div>
                         </div>
-
-                        <div class="w-32 text-right flex justify-end">
-                             <button onclick="completeTask(${evt.task_id})" class="opacity-0 group-hover:opacity-100 transition-opacity bg-green-50 text-green-600 border border-green-200 text-xs px-3 py-1.5 rounded font-medium hover:bg-green-100">
-                                Mark Done
+                        <div class="w-16 border-l border-gray-50 flex items-center justify-center bg-gray-50/50">
+                             <button onclick="completeTask(${evt.task_id})" class="text-gray-300 hover:text-green-500 transition-colors p-2" title="Complete Task">
+                                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
                             </button>
                         </div>
                     </div>`;
             });
         }
 
-        // --- HANDLERS ---
-        
-        // Settings
-        function toggleModal(show) {
-            document.getElementById('settingsModal').classList.toggle('hidden', !show);
-        }
+        // --- SETTINGS LOGIC ---
 
-        async function openSettings() {
+        async function loadSettings() {
             const res = await fetch('/api/settings');
             const data = await res.json();
-            
+
             document.getElementById('set_start').value = data.start_hour;
             document.getElementById('set_end').value = data.end_hour;
             document.getElementById('set_weekend').checked = data.weekend_mode;
             document.getElementById('set_sim_date').value = data.simulation_date || '';
-            toggleModal(true);
+            document.getElementById('set_max_daily').value = data.max_daily_hours || 6.0;
+            document.getElementById('set_min_session').value = data.min_session_minutes || 30;
+            document.getElementById('set_max_session').value = data.max_session_minutes || 120;
+            document.getElementById('set_break').value = data.break_minutes || 15;
+
+            document.getElementById('set_asc_user').value = data.asc_username || '';
+    document.getElementById('set_asc_pass').value = data.asc_password || '';
         }
 
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
+            btn.disabled = true;
+
             const data = {
                 start_hour: document.getElementById('set_start').value,
                 end_hour: document.getElementById('set_end').value,
                 weekend_mode: document.getElementById('set_weekend').checked,
-                simulation_date: document.getElementById('set_sim_date').value
+                simulation_date: document.getElementById('set_sim_date').value,
+                max_daily_hours: document.getElementById('set_max_daily').value,
+                min_session_minutes: document.getElementById('set_min_session').value,
+                max_session_minutes: document.getElementById('set_max_session').value,
+                break_minutes: document.getElementById('set_break').value,
+                asc_username: document.getElementById('set_asc_user').value,
+                asc_password: document.getElementById('set_asc_pass').value,
             };
+
             await fetch('/api/settings', {
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'},
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            toggleModal(false);
+
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+            switchTab('schedule');
             refreshAll();
         });
 
-        // Tasks
+        async function resetSimulation() {
+            document.getElementById('set_sim_date').value = '';
+            const data = { simulation_date: '' };
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            refreshAll();
+        }
+
+        // --- TASK LOGIC ---
+
         document.getElementById('addTaskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
+            const oldHtml = btn.innerHTML;
             btn.disabled = true;
+            btn.innerHTML = 'Adding...';
+
             await fetch('/api/tasks', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: document.getElementById('title').value,
                     estimated_hours: document.getElementById('hours').value,
                     priority: document.getElementById('priority').value,
                     deadline: document.getElementById('deadline').value,
-                    task_type: 'manual'
+                    task_type: document.getElementById('task_type').value
                 })
             });
+
             e.target.reset();
+            document.getElementById('priority').value = '2';
             btn.disabled = false;
+            btn.innerHTML = oldHtml;
             refreshAll();
         });
 
         async function completeTask(id) {
-            if(confirm("Mark task as complete?")) {
-                await fetch(`/api/tasks/${id}/complete`, {method: 'POST'});
+            if (!id) return;
+            if (confirm("Mark this task/session as complete?")) {
+                await fetch(`/api/tasks/${id}/complete`, { method: 'POST' });
                 refreshAll();
             }
         }
-        
-        // Missing Delete function added
+
         async function deleteTask(id) {
-             if(confirm("Delete this task permanently?")) {
-                // Note: You'll need to add a DELETE route in app.py for this to work strictly, 
-                // or use complete as a workaround. For now assuming complete.
-                await fetch(`/api/tasks/${id}/complete`, {method: 'POST'});
+            if (confirm("Delete this task permanently?")) {
+                await fetch(`/api/tasks/${id}/complete`, { method: 'POST' });
                 refreshAll();
             }
         }
@@ -399,24 +760,95 @@
         async function syncMoodle() {
             const btn = document.getElementById('syncBtn');
             const oldHtml = btn.innerHTML;
-            btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Opening Browser...`;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Syncing...`;
             btn.disabled = true;
             lucide.createIcons();
 
             try {
-                const res = await fetch('/api/sync_moodle', {method: 'POST'});
+                const res = await fetch('/api/sync_moodle', { method: 'POST' });
                 const d = await res.json();
                 alert(d.message);
                 refreshAll();
-            } catch(e) { alert("Sync failed"); }
-            
+            } catch (e) { alert("Sync failed"); }
+
             btn.innerHTML = oldHtml;
             btn.disabled = false;
             lucide.createIcons();
         }
 
+        async function syncASC() {
+            const btn = document.getElementById('syncAscBtn');
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Loading...`;
+            btn.disabled = true;
+            lucide.createIcons();
+
+            try {
+                const res = await fetch('/api/sync_asc', { method: 'POST' });
+                const d = await res.json();
+                alert(d.message);
+                refreshAll();
+            } catch (e) { alert("ASC Sync failed"); }
+
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+            lucide.createIcons();
+        }
+
+        function openEditModal(task) {
+            // Populate form
+            document.getElementById('edit_task_id').value = task.id;
+            document.getElementById('edit_title').value = task.title;
+            document.getElementById('edit_hours').value = task.estimated_hours;
+            document.getElementById('edit_priority').value = task.priority;
+            document.getElementById('edit_task_type').value = task.task_type || 'assignment';
+
+            if (task.deadline) {
+                // task.deadline usually comes as '2023-11-23T14:00:00'
+                // Input expects '2023-11-23T14:00'
+                document.getElementById('edit_deadline').value = task.deadline.slice(0, 16);
+            }
+            // Show modal
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        // Handle Edit Submit
+        document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit_task_id').value;
+
+            const data = {
+                title: document.getElementById('edit_title').value,
+                estimated_hours: document.getElementById('edit_hours').value,
+                priority: document.getElementById('edit_priority').value,
+                task_type: document.getElementById('edit_task_type').value,
+                deadline: document.getElementById('edit_deadline').value
+            };
+
+            const btn = e.target.querySelector('button');
+            const oldText = btn.innerText;
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            await fetch(`/api/tasks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            closeEditModal();
+            btn.innerText = oldText;
+            btn.disabled = false;
+            refreshAll();
+        });
+
         // Init
         refreshAll();
     </script>
 </body>
+
 </html>

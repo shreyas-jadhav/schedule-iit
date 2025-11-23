@@ -1,145 +1,274 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, time as dtime
+import copy
 
 def generate_schedule(tasks, settings):
     """
-    Strict Scheduler: Never schedules work past a deadline.
+    Advanced Scheduler:
+    1. Simulates day-by-day.
+    2. Subtracts fixed events (classes) from available hours.
+    3. Fills remaining time with tasks based on dynamic Urgency Scores.
+    4. Tracks daily analytics for bar charts and burnout metrics.
     """
-    
-    # 1. Snapshot of Demand
-    # Only take tasks that are NOT completed
-    pending_tasks = [t for t in tasks if not t.is_completed and t.estimated_hours > 0]
-    
-    # Sort: Earliest Deadline First (EDF)
-    pending_tasks.sort(key=lambda x: (x.deadline, -x.priority))
 
-    # Track remaining hours for each task
+    # --- 1. PREPARE DATA ---
+    
+    # A. Separate Fixed Events (Classes) vs Flexible Tasks (Assignments)
+    fixed_events = [t for t in tasks if t.start_time and t.end_time and not t.is_completed]
+    
+    flexible_tasks = [t for t in tasks if not t.is_completed and t.estimated_hours > 0 and t.task_type not in ['class', 'meeting']]
+    
+    # B. Ledger to track remaining work (Don't modify DB objects directly)
     task_ledger = {
-        t.id: {'remaining': t.estimated_hours} 
-        for t in pending_tasks
+        t.id: {
+            'remaining': t.estimated_hours, 
+            'task': t,
+            'original_hours': t.estimated_hours
+        } 
+        for t in flexible_tasks
     }
 
     metrics = {
-        'total_tasks': len(pending_tasks),
-        'total_hours_needed': sum(t.estimated_hours for t in pending_tasks),
+        'total_tasks': len(flexible_tasks),
+        'total_hours_needed': sum(t.estimated_hours for t in flexible_tasks),
         'total_hours_scheduled': 0,
-        'days_projected': 30
+        'days_projected': 30,
+        'avg_daily_hours': 0,
+        'completion_rate': 100,
+        'daily_trends': []
     }
-    
+
     schedule = []
-    expired_tasks = [] # Tasks that couldn't be finished on time
+    expired_tasks = [] 
     
-    # 2. Setup Simulation Time
+    # --- 2. SETUP SIMULATION ---
+    
     if settings.simulation_date:
-        current_time = settings.simulation_date
+        current_date = settings.simulation_date.date()
     else:
-        current_time = datetime.now()
-        
-    # Align to next 30 min block
-    if current_time.minute >= 30:
-        current_time = current_time.replace(minute=0) + timedelta(hours=1)
-    else:
-        current_time = current_time.replace(minute=30)
-    current_time = current_time.replace(second=0, microsecond=0)
+        current_date = datetime.now().date()
 
-    max_horizon = current_time + timedelta(days=metrics['days_projected'])
+    # Constants from Settings
+    DAY_START = dtime(settings.daily_start_hour, 0)
+    DAY_END = dtime(settings.daily_end_hour, 0)
+    MAX_DAILY_HOURS = settings.max_daily_hours
+    MIN_SESSION_HRS = settings.min_session_minutes / 60.0
+    MAX_SESSION_HRS = settings.max_session_minutes / 60.0
+    BREAK_HRS = settings.break_minutes / 60.0
+
+    # Safety Horizon
+    days_simulated = 0
+    max_days = metrics['days_projected']
     
-    work_start = settings.daily_start_hour
-    work_end = settings.daily_end_hour
-    allow_weekends = settings.weekend_mode
-    step_delta = timedelta(minutes=30)
-    chunk_hours = 0.5
+    # Track daily stats for graphs
+    daily_stats = []
+
+    # --- 3. DAY-BY-DAY SIMULATION LOOP ---
     
-    # 3. Simulation Loop
-    while pending_tasks and current_time < max_horizon:
+    while days_simulated < max_days and any(i['remaining'] > 0 for i in task_ledger.values()):
         
-        end_time = current_time + step_delta
-
-        # --- A. Prune Expired Tasks ---
-        # Before we try to work, check if any tasks have ALREADY expired
-        # or if working now would push them past deadline.
-        active_tasks = []
-        for t in pending_tasks:
-            # If the slot end time is AFTER the deadline, we can't use this slot for this task.
-            if end_time > t.deadline:
-                # Task has expired (or at least this specific chunk is impossible)
-                # We mark it as expired and remove from pending
-                if t.id not in [x['id'] for x in expired_tasks]:
-                    expired_tasks.append({
-                        'id': t.id,
-                        'title': t.title,
-                        'missed_hours': task_ledger[t.id]['remaining'],
-                        'deadline': t.deadline.isoformat()
-                    })
-            else:
-                active_tasks.append(t)
+        # A. Setup Day Windows
+        day_start_dt = datetime.combine(current_date, DAY_START)
+        day_end_dt = datetime.combine(current_date, DAY_END)
         
-        pending_tasks = active_tasks # Update the main list
-        
-        # If everything expired, break early or continue to find next valid slots
-        if not pending_tasks:
-            break
-
-        # --- B. Check Working Hours Constraints ---
-        is_weekend = current_time.weekday() >= 5
-        hour = current_time.hour
-
-        if (not allow_weekends and is_weekend) or not (work_start <= hour < work_end):
-            current_time += step_delta
+        # Check Weekend Mode
+        is_weekend = current_date.weekday() >= 5
+        if (not settings.weekend_mode and is_weekend):
+            # Record empty stats for weekend to keep chart continuity
+            daily_stats.append({
+                'date': current_date.isoformat(),
+                'day_name': current_date.strftime("%a"),
+                'hours': 0,
+                'utilization': 0
+            })
+            current_date += timedelta(days=1)
+            days_simulated += 1
             continue
 
-        # --- C. Select Best Task ---
-        selected_task = None
-        for task in pending_tasks:
-            if task_ledger[task.id]['remaining'] > 0:
-                selected_task = task
+        # B. Identify Free Time Slots (Subtract Fixed Events)
+        # Start with one big slot: [Start, End]
+        free_slots = [(day_start_dt, day_end_dt)]
+        
+        # Filter fixed events for TODAY
+        todays_fixed = [
+            e for e in fixed_events 
+            if e.start_time.date() == current_date
+        ]
+        todays_fixed.sort(key=lambda x: x.start_time)
+
+        # Subtract fixed events from free slots
+        for ev in todays_fixed:
+            new_slots = []
+            for start, end in free_slots:
+                # No overlap
+                if ev.end_time <= start or ev.start_time >= end:
+                    new_slots.append((start, end))
+                    continue
+                
+                # Overlap: Cut the slot
+                if ev.start_time > start:
+                    new_slots.append((start, ev.start_time))
+                if ev.end_time < end:
+                    new_slots.append((ev.end_time, end))
+            free_slots = new_slots
+
+        # Filter out tiny slots (smaller than min session)
+        free_slots = [
+            (s, e) for s, e in free_slots 
+            if (e - s).total_seconds() / 3600.0 >= MIN_SESSION_HRS
+        ]
+
+        # C. Fill Free Slots with Tasks
+        daily_work_hours = 0
+        
+        for slot_start, slot_end in free_slots:
+            if daily_work_hours >= MAX_DAILY_HOURS:
                 break
+            
+            cursor = slot_start
+            
+            # While there is room in this slot
+            while cursor < slot_end:
+                
+                # 1. Calculate Capacity
+                slot_remaining = (slot_end - cursor).total_seconds() / 3600.0
+                daily_remaining = MAX_DAILY_HOURS - daily_work_hours
+                
+                capacity = min(slot_remaining, daily_remaining)
+                
+                if capacity < MIN_SESSION_HRS:
+                    break # Slot too small or day cap reached
+
+                # 2. Pick Best Task (Urgency Score)
+                best_task_id = None
+                best_score = -1
+                
+                for tid, data in task_ledger.items():
+                    if data['remaining'] <= 0:
+                        continue
+                    
+                    task = data['task']
+                    
+                    # Skip if deadline passed
+                    if task.deadline and task.deadline < cursor:
+                        # Log as expired if not already
+                        if tid not in [x['id'] for x in expired_tasks]:
+                            expired_tasks.append({
+                                'id': task.id,
+                                'title': task.title,
+                                'deadline': task.deadline.isoformat(),
+                                'missed_hours': data['remaining']
+                            })
+                        continue
+
+                    # Calculate Urgency
+                    score = calculate_urgency(task, data['remaining'], cursor)
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_task_id = tid
+                
+                if not best_task_id:
+                    break # No doable tasks left
+                
+                # 3. Create Session
+                task_data = task_ledger[best_task_id]
+                
+                # Duration is min of:
+                # - Task remaining
+                # - Max session length setting
+                # - Available capacity in slot/day
+                duration = min(
+                    task_data['remaining'], 
+                    MAX_SESSION_HRS, 
+                    capacity
+                )
+                
+                # Ensure we don't schedule tiny fragments unless it finishes the task
+                if duration < MIN_SESSION_HRS and duration < task_data['remaining']:
+                    break
+
+                session_end = cursor + timedelta(hours=duration)
+                
+                schedule.append({
+                    'title': task_data['task'].title,
+                    'start': cursor.isoformat(),
+                    'end': session_end.isoformat(),
+                    'color': '#3B82F6', 
+                    'task_id': best_task_id,
+                    'type': task_data['task'].task_type,
+                    'chunk_duration': duration,
+                    'progress_msg': f"Remaining: {task_data['remaining'] - duration:.1f}h"
+                })
+                
+                # 4. Update State
+                task_data['remaining'] -= duration
+                metrics['total_hours_scheduled'] += duration
+                daily_work_hours += duration
+                
+                # 5. Add Break
+                cursor = session_end + timedelta(minutes=settings.break_minutes)
+                
+                if daily_work_hours >= MAX_DAILY_HOURS:
+                    break
+
+        # Capture Daily Stats for Charts
+        daily_stats.append({
+            'date': current_date.isoformat(),
+            'day_name': current_date.strftime("%a"), # Mon, Tue
+            'hours': daily_work_hours,
+            'utilization': (daily_work_hours / MAX_DAILY_HOURS * 100) if MAX_DAILY_HOURS > 0 else 0
+        })
+
+        # Move to next day
+        current_date += timedelta(days=1)
+        days_simulated += 1
+
+    # --- 4. CALCULATE FINAL METRICS ---
+    
+    # Calculate Average Daily Load (excluding empty days if desired, but usually better to average over active work days)
+    active_days = [d for d in daily_stats if d['hours'] > 0]
+    
+    # Metric 1: Average Load (only on days you actually work)
+    if active_days:
+        metrics['avg_daily_hours'] = sum(d['hours'] for d in active_days) / len(active_days)
+    else:
+        metrics['avg_daily_hours'] = 0
+
+    # Metric 2: Peak Load (The busiest day)
+    if daily_stats:
+        metrics['peak_hours'] = max((d['hours'] for d in daily_stats), default=0)
+    else:
+        metrics['peak_hours'] = 0
         
-        if selected_task:
-            ledger_entry = task_ledger[selected_task.id]
-            
-            schedule.append({
-                'title': selected_task.title,
-                'start': current_time.isoformat(),
-                'end': end_time.isoformat(),
-                'color': '#3B82F6', # Always blue, because we don't allow red (overdue) anymore
-                'task_id': selected_task.id,
-                'type': selected_task.task_type,
-                'chunk_duration': chunk_hours,
-                'progress_msg': f"Remaining: {ledger_entry['remaining'] - chunk_hours:.1f}h"
-            })
-            
-            ledger_entry['remaining'] -= chunk_hours
-            metrics['total_hours_scheduled'] += chunk_hours
-            
-            if ledger_entry['remaining'] <= 1e-5:
-                pending_tasks.remove(selected_task)
-        
-        current_time += step_delta
+    # Metric 3: Active Work Days
+    metrics['active_days_count'] = len(active_days)
+
+    # Pass raw trends
+    metrics['daily_trends'] = daily_stats[:14]
 
     return {
         'metrics': metrics,
-        'schedule': merge_slots(schedule),
-        'unscheduled': [t.to_dict() for t in pending_tasks], # Tasks that didn't fit in 30 days
-        'expired': expired_tasks # Tasks where deadline passed before we could finish
+        'schedule': schedule,
+        'unscheduled': [
+            {'id': t['task'].id, 'title': t['task'].title, 'remaining': t['remaining']}
+            for t in task_ledger.values() if t['remaining'] > 0.1
+        ],
+        'expired': expired_tasks
     }
 
-def merge_slots(raw_schedule):
-    if not raw_schedule: return []
-    merged = []
-    current = raw_schedule[0]
-    current['total_block_duration'] = current['chunk_duration']
+def calculate_urgency(task, remaining_hours, current_time):
+    """
+    Score = (Priority Weight * Remaining Work) / Time Until Deadline
+    """
+    p_weight = {1: 1.0, 2: 2.5, 3: 5.0}.get(task.priority, 1.0)
     
-    for next_block in raw_schedule[1:]:
-        if (current['task_id'] == next_block['task_id'] and 
-            current['end'] == next_block['start']):
-            
-            current['end'] = next_block['end']
-            current['total_block_duration'] += next_block['chunk_duration']
-            current['progress_msg'] = next_block['progress_msg'] 
-        else:
-            merged.append(current)
-            current = next_block
-            current['total_block_duration'] = current['chunk_duration']
-            
-    merged.append(current)
-    return merged
+    if not task.deadline:
+        hours_until_deadline = 720 
+    else:
+        hours_until_deadline = (task.deadline - current_time).total_seconds() / 3600.0
+    
+    hours_until_deadline = max(hours_until_deadline, 0.1)
+    
+    score = (p_weight * remaining_hours * 10) / hours_until_deadline
+    
+    return score
