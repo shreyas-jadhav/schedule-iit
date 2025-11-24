@@ -56,6 +56,48 @@ If you prefer not to use the scripts, follow these steps:
     Open your browser and navigate to:
     `http://127.0.0.1:5000`
 
+
+
+## 📂 Codebase 
+
+
+### 1. The Controller & API
+* **`app.py`**
+    * The Flask Server Entry Point.
+    * Initializes the application and SQLite database. It defines REST API endpoints (e.g., `/api/tasks`, `/api/sync_moodle`) that the frontend calls to fetch data or trigger actions. It acts as the bridge between the UI, the Database, and the Scheduler.
+
+### 2. The Data Layer
+* **`models.py`**
+    * Database Schema (SQLAlchemy).
+    * Defines the structure of the `schedule.db` database.
+        * `class Task`: Stores title, deadline, estimated hours, priority, and completion status.
+        * `class Settings`: Stores user preferences (Daily Start/End hours, ASC credentials, simulation dates).
+
+### 3. The Logic Engine
+* **`scheduler.py`**
+    * *The  Algorithm.
+    * Contains the `generate_schedule()` function. This script runs a greedy heuristic algorithm that:
+        1.  Simulates time day-by-day.
+        2.  Calculates an **Urgency Score** for every task.
+        3.  Fits tasks into free time slots (Bin Packing) while respecting class times and max-work-hour constraints.
+
+### 4. Automation & Integration
+* **`scraper.py`**
+    * Selenium Automation.
+    * Handles all external interactions.
+        * `run_moodle_sync()`: Logs into Moodle, parses the Dashboard HTML, and extracts assignment due dates.
+        * `run_asc_sync()`: Navigates the ASC portal to scrape course timetables.
+        * **Persistent Profile:** Uses a local `chrome_data/` folder to save cookies, so you don't have to log in manually every time.
+
+### 5. The User Interface
+* **`templates/index.html`**
+    * Single Page Frontend.
+    * A dashboard built with **Tailwind CSS**. It uses vanilla JavaScript to fetch JSON from `app.py` and render the interactive Timeline, Task Backlog, and Configuration forms without page reloads.
+
+### 6. Utilities
+* **`setup.sh`, `run.sh`, `reset.sh`**
+    * Bash Automation Scripts.
+    * **Details:** Helper scripts to simplify the developer workflow (installing dependencies, running the server, and cleaning the database).
 ---
 
 ## 📖 Usage Guide
