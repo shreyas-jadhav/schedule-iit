@@ -12,12 +12,11 @@ class Settings(db.Model):
     asc_username = db.Column(db.String(100), nullable=True)
     asc_password = db.Column(db.String(100), nullable=True)
     
-    # Time Window
+    # time Window
     daily_start_hour = db.Column(db.Integer, default=9)
     daily_end_hour = db.Column(db.Integer, default=17) 
     weekend_mode = db.Column(db.Boolean, default=False)
     
-    # Advanced Scheduling Preferences
     max_daily_hours = db.Column(db.Float, default=6.0)
     min_session_minutes = db.Column(db.Integer, default=30)
     max_session_minutes = db.Column(db.Integer, default=120)

@@ -8,20 +8,20 @@ read -p "Are you sure? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-    # 1. Delete Database
+    # delete Database
     if [ -f "instance/schedule.db" ]; then
         rm instance/schedule.db
         echo "Database deleted."
     fi
 
-    # 2. Clear Chrome Session (Fixes Selenium if it gets stuck)
+    # clear chrome data
     if [ -d "chrome_data" ]; then
         rm -rf chrome_data
         mkdir chrome_data
         echo "Chrome session data cleared."
     fi
 
-    # 3. Clear Python Cache
+    # remove python cache
     find . -type d -name "__pycache__" -exec rm -r {} +
     
     echo "System reset successfully."

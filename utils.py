@@ -2,22 +2,11 @@ from datetime import datetime, timedelta, date, time as dtime
 import copy
 
 def generate_schedule(tasks, settings):
-    """
-    Advanced Scheduler:
-    1. Simulates day-by-day.
-    2. Subtracts fixed events (classes) from available hours.
-    3. Fills remaining time with tasks based on dynamic Urgency Scores.
-    4. Tracks daily analytics for bar charts and burnout metrics.
-    """
-
-    # --- 1. PREPARE DATA ---
     
-    # A. Separate Fixed Events (Classes) vs Flexible Tasks (Assignments)
     fixed_events = [t for t in tasks if t.start_time and t.end_time and not t.is_completed]
     
     flexible_tasks = [t for t in tasks if not t.is_completed and t.estimated_hours > 0 and t.task_type not in ['class', 'meeting']]
     
-    # B. Ledger to track remaining work (Don't modify DB objects directly)
     task_ledger = {
         t.id: {
             'remaining': t.estimated_hours, 
@@ -40,14 +29,14 @@ def generate_schedule(tasks, settings):
     schedule = []
     expired_tasks = [] 
     
-    # --- 2. SETUP SIMULATION ---
+    # for simulation
     
     if settings.simulation_date:
         current_date = settings.simulation_date.date()
     else:
         current_date = datetime.now().date()
 
-    # Constants from Settings
+    # from settings in db
     DAY_START = dtime(settings.daily_start_hour, 0)
     DAY_END = dtime(settings.daily_end_hour, 0)
     MAX_DAILY_HOURS = settings.max_daily_hours
@@ -55,25 +44,22 @@ def generate_schedule(tasks, settings):
     MAX_SESSION_HRS = settings.max_session_minutes / 60.0
     BREAK_HRS = settings.break_minutes / 60.0
 
-    # Safety Horizon
     days_simulated = 0
     max_days = metrics['days_projected']
     
-    # Track daily stats for graphs
     daily_stats = []
 
-    # --- 3. DAY-BY-DAY SIMULATION LOOP ---
-    
+    # day by day 
     while days_simulated < max_days and any(i['remaining'] > 0 for i in task_ledger.values()):
         
-        # A. Setup Day Windows
+        # user window
         day_start_dt = datetime.combine(current_date, DAY_START)
         day_end_dt = datetime.combine(current_date, DAY_END)
         
-        # Check Weekend Mode
+        # check weekend
         is_weekend = current_date.weekday() >= 5
         if (not settings.weekend_mode and is_weekend):
-            # Record empty stats for weekend to keep chart continuity
+
             daily_stats.append({
                 'date': current_date.isoformat(),
                 'day_name': current_date.strftime("%a"),
@@ -84,40 +70,39 @@ def generate_schedule(tasks, settings):
             days_simulated += 1
             continue
 
-        # B. Identify Free Time Slots (Subtract Fixed Events)
-        # Start with one big slot: [Start, End]
+
         free_slots = [(day_start_dt, day_end_dt)]
         
-        # Filter fixed events for TODAY
+
         todays_fixed = [
             e for e in fixed_events 
             if e.start_time.date() == current_date
         ]
         todays_fixed.sort(key=lambda x: x.start_time)
 
-        # Subtract fixed events from free slots
+
         for ev in todays_fixed:
             new_slots = []
             for start, end in free_slots:
-                # No overlap
+                # no overlap
                 if ev.end_time <= start or ev.start_time >= end:
                     new_slots.append((start, end))
                     continue
                 
-                # Overlap: Cut the slot
+                # cut the slot
                 if ev.start_time > start:
                     new_slots.append((start, ev.start_time))
                 if ev.end_time < end:
                     new_slots.append((ev.end_time, end))
             free_slots = new_slots
 
-        # Filter out tiny slots (smaller than min session)
+        # filter 
         free_slots = [
             (s, e) for s, e in free_slots 
             if (e - s).total_seconds() / 3600.0 >= MIN_SESSION_HRS
         ]
 
-        # C. Fill Free Slots with Tasks
+        # fill Free Slots with Tasks
         daily_work_hours = 0
         
         for slot_start, slot_end in free_slots:
@@ -126,19 +111,17 @@ def generate_schedule(tasks, settings):
             
             cursor = slot_start
             
-            # While there is room in this slot
+            # while there is room
             while cursor < slot_end:
-                
-                # 1. Calculate Capacity
+
                 slot_remaining = (slot_end - cursor).total_seconds() / 3600.0
                 daily_remaining = MAX_DAILY_HOURS - daily_work_hours
                 
                 capacity = min(slot_remaining, daily_remaining)
                 
                 if capacity < MIN_SESSION_HRS:
-                    break # Slot too small or day cap reached
+                    break
 
-                # 2. Pick Best Task (Urgency Score)
                 best_task_id = None
                 best_score = -1
                 
@@ -148,9 +131,9 @@ def generate_schedule(tasks, settings):
                     
                     task = data['task']
                     
-                    # Skip if deadline passed
+                   
                     if task.deadline and task.deadline < cursor:
-                        # Log as expired if not already
+                       
                         if tid not in [x['id'] for x in expired_tasks]:
                             expired_tasks.append({
                                 'id': task.id,
@@ -160,7 +143,7 @@ def generate_schedule(tasks, settings):
                             })
                         continue
 
-                    # Calculate Urgency
+                   
                     score = calculate_urgency(task, data['remaining'], cursor)
                     
                     if score > best_score:
@@ -168,22 +151,22 @@ def generate_schedule(tasks, settings):
                         best_task_id = tid
                 
                 if not best_task_id:
-                    break # No doable tasks left
+                    break
                 
-                # 3. Create Session
+               
                 task_data = task_ledger[best_task_id]
                 
-                # Duration is min of:
-                # - Task remaining
-                # - Max session length setting
-                # - Available capacity in slot/day
+               
+               
+               
+               
                 duration = min(
                     task_data['remaining'], 
                     MAX_SESSION_HRS, 
                     capacity
                 )
                 
-                # Ensure we don't schedule tiny fragments unless it finishes the task
+               
                 if duration < MIN_SESSION_HRS and duration < task_data['remaining']:
                     break
 
@@ -200,50 +183,47 @@ def generate_schedule(tasks, settings):
                     'progress_msg': f"Remaining: {task_data['remaining'] - duration:.1f}h"
                 })
                 
-                # 4. Update State
+               
                 task_data['remaining'] -= duration
                 metrics['total_hours_scheduled'] += duration
                 daily_work_hours += duration
                 
-                # 5. Add Break
+               
                 cursor = session_end + timedelta(minutes=settings.break_minutes)
                 
                 if daily_work_hours >= MAX_DAILY_HOURS:
                     break
 
-        # Capture Daily Stats for Charts
+       
         daily_stats.append({
             'date': current_date.isoformat(),
-            'day_name': current_date.strftime("%a"), # Mon, Tue
+            'day_name': current_date.strftime("%a"),
             'hours': daily_work_hours,
             'utilization': (daily_work_hours / MAX_DAILY_HOURS * 100) if MAX_DAILY_HOURS > 0 else 0
         })
 
-        # Move to next day
+       
         current_date += timedelta(days=1)
         days_simulated += 1
 
-    # --- 4. CALCULATE FINAL METRICS ---
+   
     
-    # Calculate Average Daily Load (excluding empty days if desired, but usually better to average over active work days)
+   
     active_days = [d for d in daily_stats if d['hours'] > 0]
     
-    # Metric 1: Average Load (only on days you actually work)
+    # metrics
     if active_days:
         metrics['avg_daily_hours'] = sum(d['hours'] for d in active_days) / len(active_days)
     else:
         metrics['avg_daily_hours'] = 0
 
-    # Metric 2: Peak Load (The busiest day)
     if daily_stats:
         metrics['peak_hours'] = max((d['hours'] for d in daily_stats), default=0)
     else:
         metrics['peak_hours'] = 0
         
-    # Metric 3: Active Work Days
     metrics['active_days_count'] = len(active_days)
 
-    # Pass raw trends
     metrics['daily_trends'] = daily_stats[:14]
 
     return {
@@ -257,9 +237,9 @@ def generate_schedule(tasks, settings):
     }
 
 def calculate_urgency(task, remaining_hours, current_time):
-    """
-    Score = (Priority Weight * Remaining Work) / Time Until Deadline
-    """
+
+#    score = (priority weight * remaining Work) / time until deadline
+
     p_weight = {1: 1.0, 2: 2.5, 3: 5.0}.get(task.priority, 1.0)
     
     if not task.deadline:

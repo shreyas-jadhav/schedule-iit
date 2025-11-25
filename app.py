@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from models import db, Settings, Task
-from scheduler import generate_schedule
-from scraper import run_moodle_sync, run_asc_sync
+from utils import generate_schedule
+from moodle import run_moodle_sync
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ def handle_tasks():
         data = request.json
         dt = datetime.fromisoformat(data['deadline']) if data.get('deadline') else None
         
-        # Check if this is a fixed event (has start/end) or a flexible task
+        
         start_time = datetime.fromisoformat(data['start_time']) if data.get('start_time') else None
         end_time = datetime.fromisoformat(data['end_time']) if data.get('end_time') else None
         
@@ -43,9 +43,9 @@ def handle_tasks():
         db.session.commit()
         return jsonify({'status': 'success'})
     
-    # Sort by start_time for classes, deadline for tasks
+    
     tasks = Task.query.filter_by(is_completed=False).all()
-    # Simple sort helper
+    
     def sort_key(t):
         if t.start_time: return t.start_time
         if t.deadline: return t.deadline
@@ -87,26 +87,26 @@ def get_schedule_route():
     data = generate_schedule(tasks, settings)
     return jsonify(data)
 
-# --- NEW: POPULATE CLASSES ---
+
 
 def get_semester_end():
     """Returns the closer of Dec 1st or May 1st."""
     now = datetime.now()
     year = now.year
     
-    # Candidate dates
+    
     dates = [
         datetime(year, 5, 1),
         datetime(year, 12, 1),
-        datetime(year + 1, 5, 1) # Next year's May (if currently in Dec)
+        datetime(year + 1, 5, 1) 
     ]
     
-    # Filter only future dates
+    
     future_dates = [d for d in dates if d > now]
     
-    # Return the closest one
+    
     if not future_dates:
-        return datetime(year + 1, 5, 1) # Fallback
+        return datetime(year + 1, 5, 1) 
     
     return min(future_dates, key=lambda d: d - now)
 
@@ -124,38 +124,29 @@ def populate_classes():
     semester_end = get_semester_end()
     current_date = datetime.now()
     
-    # Move to tomorrow to start populating (or today if you want immediate effect)
-    # Let's start from today
     cursor = current_date
     
     added_count = 0
     
-    # Mapping JS getDay (0=Sun, 1=Mon) to Python weekday (0=Mon, 6=Sun)
-    # JS: Sun=0, Mon=1, ... Sat=6
-    # Python: Mon=0, Tue=1, ... Sun=6
-    # We will handle this conversion in the backend map
     js_to_py_day = {0: 6, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5}
 
     while cursor <= semester_end:
         py_weekday = cursor.weekday()
         
         for item in schedule_data:
-            # Item day comes from JS getDay() (0=Sun...6=Sat) or custom int.
-            # Let's assume frontend sends 0=Mon, 6=Sun to match Python for simplicity
-            # OR explicitly handle it. Let's assume frontend sends Python format (0-6 Mon-Sun)
-            
+
             target_day = int(item['day'])
             
             if py_weekday == target_day:
-                # Create Class Instance
-                # Parse times
+                
+                
                 s_h, s_m = map(int, item['start'].split(':'))
                 e_h, e_m = map(int, item['end'].split(':'))
                 
                 start_dt = cursor.replace(hour=s_h, minute=s_m, second=0, microsecond=0)
                 end_dt = cursor.replace(hour=e_h, minute=e_m, second=0, microsecond=0)
                 
-                # Check if exists to avoid duplicates (optional but good)
+                
                 exists = Task.query.filter_by(
                     title=item['name'],
                     start_time=start_dt,
@@ -166,11 +157,11 @@ def populate_classes():
                     new_task = Task(
                         title=item['name'],
                         estimated_hours=0,
-                        priority=3, # Classes are high priority fixed events
+                        priority=3, 
                         task_type='class',
                         start_time=start_dt,
                         end_time=end_dt,
-                        deadline=start_dt # Sort of irrelevant for fixed events
+                        deadline=start_dt 
                     )
                     db.session.add(new_task)
                     added_count += 1
@@ -183,17 +174,17 @@ def populate_classes():
         'message': f'Added {added_count} class sessions until {semester_end.strftime("%b %d, %Y")}'
     })
 
-# --- EXISTING SYNC ROUTES ---
+
 
 @app.route('/api/sync_moodle', methods=['POST'])
 def sync_moodle():
     result = run_moodle_sync(app, db, Task, Settings)
     return jsonify({'message': result})
 
-@app.route('/api/sync_asc', methods=['POST'])
-def sync_asc():
-    result = run_asc_sync(app, db, Task, Settings)
-    return jsonify({'message': result})
+
+
+
+
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def manage_settings():
@@ -201,21 +192,41 @@ def manage_settings():
     
     if request.method == 'POST':
         data = request.json
-        s.daily_start_hour = int(data.get('start_hour', s.daily_start_hour))
-        s.daily_end_hour = int(data.get('end_hour', s.daily_end_hour))
-        s.weekend_mode = bool(data.get('weekend_mode', s.weekend_mode))
+        
+        
+        if data.get('start_hour') is not None and str(data['start_hour']).strip():
+            s.daily_start_hour = int(data['start_hour'])
+            
+        if data.get('end_hour') is not None and str(data['end_hour']).strip():
+            s.daily_end_hour = int(data['end_hour'])
+            
+        if 'weekend_mode' in data:
+            s.weekend_mode = bool(data.get('weekend_mode'))
+        
         
         if 'asc_username' in data: s.asc_username = data['asc_username']
         if 'asc_password' in data: s.asc_password = data['asc_password']
         
-        s.max_daily_hours = float(data.get('max_daily_hours', s.max_daily_hours))
-        s.min_session_minutes = int(data.get('min_session_minutes', s.min_session_minutes))
-        s.max_session_minutes = int(data.get('max_session_minutes', s.max_session_minutes))
-        s.break_minutes = int(data.get('break_minutes', s.break_minutes))
+        
+        if data.get('max_daily_hours'): 
+            s.max_daily_hours = float(data['max_daily_hours'])
+        if data.get('min_session_minutes'): 
+            s.min_session_minutes = int(data['min_session_minutes'])
+        if data.get('max_session_minutes'): 
+            s.max_session_minutes = int(data['max_session_minutes'])
+        if data.get('break_minutes'): 
+            s.break_minutes = int(data['break_minutes'])
+        
         
         sim_date_str = data.get('simulation_date')
         if sim_date_str:
-            s.simulation_date = datetime.fromisoformat(sim_date_str)
+            try:
+                
+                if len(sim_date_str) == 16: 
+                    sim_date_str += ":00"
+                s.simulation_date = datetime.fromisoformat(sim_date_str)
+            except ValueError:
+                pass 
         else:
             s.simulation_date = None 
             
@@ -234,6 +245,5 @@ def manage_settings():
         'break_minutes': s.break_minutes,
         'simulation_date': s.simulation_date.isoformat() if s.simulation_date else ''
     })
-
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

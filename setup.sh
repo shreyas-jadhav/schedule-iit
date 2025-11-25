@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Colors for pretty output
+# colors for pretty output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m' # no Color
 
 echo -e "${BLUE}Starting Schedule-IIT Setup...${NC}"
 
-# 1. Create Virtual Environment if it doesn't exist
+# create venv if it doesn't exist
 if [ ! -d "venv" ]; then
     echo -e "Creating Python virtual environment..."
     python3 -m venv venv
@@ -15,12 +15,12 @@ else
     echo -e "Virtual environment already exists."
 fi
 
-# 2. Activate and Install
+# activate and install
 echo -e "Installing dependencies..."
 source venv/bin/activate
 pip install -r requirements.txt
 
-# 3. Create necessary directories for the App and Selenium
+# ceate necessary directories for the App and Selenium
 echo -e "Creating data directories..."
 # 'instance' is where Flask-SQLAlchemy stores the sqlite db by default
 mkdir -p instance
